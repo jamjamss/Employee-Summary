@@ -10,77 +10,102 @@ const outputPath = path.join(OUTPUT_DIR, "team.html");
 
 const render = require("./lib/htmlRenderer");
 
+const qs = [
+  {
+    type: "input",
+    name: "name",
+    message: "What is the team member's name?",
+  },
 
-// Write code to use inquirer to gather information about the development team members,
-// and to create objects for each team member (using the correct classes as blueprints!)
+  {
+    type: "input",
+    name: "id",
+    message: "What the team member's id?",
+  },
+  {
+    type: "input",
+    name: "email",
+    message: "What is the team member's email?",
+  },
+  {
+    type: "list",
+    name: "role",
+    message: "What is team member's role?",
+    choices: ["Manager", "Engineer", "Intern"],
+  },
+];
 
-let questions = []
-
-inquirer 
-.prompt([
-    {
-        type: "input",
-        name: "ID",
-        message: "What is your employee ID?"
-    },
-    {
-        type: "input",
-        name: "email",
-        message: "What is your email?"
-    },
-    {
-        type: "input",
-        name: "Role",
-        message: "What is your role?",
-        choices: ["Intern", "Manager", "Engineer"],
-    },
-    {
-        type: "input",
-        name: "information",
-        message: "Please provide your github, school information, or phone number"
-    },
-    
-]) .then(function({name, role, id, email}) {
-    let roleQuestions = [];
-    if (Role === "Engineer") {
-        roleQuestions = "Enter your GitHub username please";
-    } else if(Role === "Intern") {
-        roleQuestions = "Enter your school information please";
-    } else{
-        roleQuestions = "Please enter your phone #"
-    }
-
-
-    inquirer
+const team = [];
+const generateTeam = () => {
+  inquirer
+    .prompt(qs)
+    .then((ans1) => {
+      inquirer
         .prompt([
           {
-            message: `What is this member's ${roleQuestions}?`,
-            name: "roleQuestions",
+            when: () => ans1.role === "Manager",
+            type: "input",
+            message: "What is their office number",
+            name: "officeNumber",
           },
           {
-            type: "list",
-            message: "Are there any more team members you would like too add?",
-            name: "addTeamMembers",
-            options: ["yes", "no"],
+            when: () => ans1.role === "Engineer",
+
+            type: "input",
+            message: "What is the GitHub Username?",
+            name: "github",
+          },
+
+          {
+            when: () => ans1.role === "Intern",
+
+            type: "input",
+            message: "What is the school's name?",
+            name: "school",
+          },
+
+          {
+            type: "confirm",
+            message: "Would you like to add another team member?",
+            name: "addMember",
           },
         ])
 
-// After the user has input all employees desired, call the `render` function (required
-// above) and pass in an array containing all employee objects; the `render` function will
-// generate and return a block of HTML including templated divs for each employee!
+        .then((ans2) => {
+          if (ans1.role === "Manager") {
+            const Manager = new Manager(ans1.name, ans1.id, ans1.email, ans1.role, ans2.officeNumber);
+            team.push(Manager);
+          }
 
-// After you have your html, you're now ready to create an HTML file using the HTML
-// returned from the `render` function. Now write it to a file named `team.html` in the
-// `output` folder. You can use the variable `outputPath` above target this location.
-// Hint: you may need to check if the `output` folder exists and create it if it
-// does not.
+          if (ans1.role === "Engineer") {
+            const engineer = new Engineer(ans1.name, ans1.id, ans1.email, ans1.role, ans2.github);
+            team.push(engineer);
+          }
 
-// HINT: each employee type (manager, engineer, or intern) has slightly different
-// information; write your code to ask different questions via inquirer depending on
-// employee type.
+          if (ans1.role === "Intern") {
+            const intern = new Intern(ans1.name, ans1.id, ans1.email, ans1.role, ans2.school);
+            team.push(intern);
+          }
+          if (ans2.addMember) {
+            generateTeam();
+          } else {
+            team.forEach((team) => {
+              console.log(team);
+            });
+            fs.writeFile(outputPath, render(team), (err) => {
+              if (err) {
+                throw err;
+              }
+              console.log("Success, team HTML is created!");
+            });
+          }
+        });
+    })
+    .catch((err) => {
+      if (err) {
+        throw err;
+      }
+    });
+};
 
-// HINT: make sure to build out your classes first! Remember that your Manager, Engineer,
-// and Intern classes should all extend from a class named Employee; see the directions
-// for further information. Be sure to test out each class and verify it generates an
-// object with the correct structure and methods. This structure will be crucial in order
-// for the provided `render` function to work! 
+generateTeam();
